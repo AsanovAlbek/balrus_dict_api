@@ -6,9 +6,14 @@ from model.word import Word
 def get_all_words(db: Session):
     return db.query(Word).all()
 
+#Найти слово по id
 def get_word_by_id(id: int, db: Session):
     return db.query(Word).filter(Word.id == id).first()
 
+def get_word_by_name(name: str, db: Session):
+    return db.query(Word).filter(Word.name.lower().contains(name.lower()))
+
+#Добавить слово
 def add_word(data: word.Word, db: Session):
     new_word = __word_from_dto(data)
     try:
@@ -19,11 +24,13 @@ def add_word(data: word.Word, db: Session):
         print(e)
     return new_word
 
+#Удалить слово
 def delete_word(id: int, db: Session):
     deleted_word = db.query(Word).filter(Word.id == id).delete()
     db.commit()
     return deleted_word
 
+#Обновить (изменить) слово
 def update_word(data: word.Word, id: int, db: Session):
     wd = db.query(Word).filter(Word.id == id).first()
     wd = __word_from_dto(data, wd)
@@ -33,7 +40,7 @@ def update_word(data: word.Word, id: int, db: Session):
         db.refresh(wd)
     except Exception as e:
         print(e)
-        
+
     return wd
 
 
