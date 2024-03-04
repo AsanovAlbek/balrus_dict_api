@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from database import get_connection
+from database.database import get_connection
 from api import service
 from dto import word as wordDto
 

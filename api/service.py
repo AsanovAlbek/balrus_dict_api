@@ -11,7 +11,7 @@ def get_word_by_id(id: int, db: Session):
     return db.query(Word).filter(Word.id == id).first()
 
 def get_word_by_name(name: str, db: Session):
-    return db.query(Word).filter(Word.name.lower().contains(name.lower()))
+    return db.query(Word).filter(Word.name.like('%{name}%'))
 
 #Добавить слово
 def add_word(data: word.Word, db: Session):
