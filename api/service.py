@@ -10,8 +10,9 @@ def get_all_words(db: Session):
 def get_word_by_id(id: int, db: Session):
     return db.query(Word).filter(Word.id == id).first()
 
+#Поиск слова
 def get_word_by_name(name: str, db: Session):
-    return db.query(Word).filter(Word.name.like('%{name}%'))
+    return db.query(Word).filter(Word.name.ilike(f'%{name}%')).first()
 
 #Добавить слово
 def add_word(data: word.Word, db: Session):
