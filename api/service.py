@@ -3,16 +3,20 @@ from dto import word
 from model.word import Word
 
 #Все слова
-def get_all_words(db: Session):
-    return db.query(Word).all()
+def get_all_words(db: Session, page: int = 0, size: int = 20):
+    skip = page * size
+    limit =(page + 1) * size
+    return db.query(Word).order_by(Word.name).offset(skip).limit(limit).all()
 
 #Найти слово по id
 def get_word_by_id(id: int, db: Session):
     return db.query(Word).filter(Word.id == id).first()
 
 #Поиск слова
-def get_word_by_name(name: str, db: Session):
-    return db.query(Word).filter(Word.name.ilike(f'%{name}%')).first()
+def get_word_by_name(name: str, db: Session, page: int = 0, size: int = 20):
+    skip = page * size
+    limit = (page + 1) * size
+    return db.query(Word).filter(Word.name.ilike(name + '%')).order_by(Word.name).offset(skip).limit(limit).all()
 
 #Добавить слово
 def add_word(data: word.Word, db: Session):
@@ -53,7 +57,7 @@ def __word_from_dto(dto_model: word.Word, model: Word = None):
         return model
     else:
         return Word(
-        id = dto_model.id,
-        word = dto_model.name,
-        meaning = dto_model.meaning
+            id = dto_model.id,
+            name = dto_model.name,
+            meaning = dto_model.meaning
         )
