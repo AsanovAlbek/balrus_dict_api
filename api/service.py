@@ -1,22 +1,31 @@
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from dto import word
 from model.word import Word
 
 #Все слова
-def get_all_words(db: Session, page: int = 0, size: int = 20):
+def get_all_words(db: Session, page: int = 0, size: int = 100):
     skip = page * size
     limit =(page + 1) * size
-    return db.query(Word).order_by(Word.name).offset(skip).limit(limit).all()
+    return db.query(Word).order_by(Word.name).offset(skip).limit(size).all()
+
+#Количество записей в бд
+def words_count(db: Session):
+    return db.query(func.count(Word.id)).scalar()
+
+#Количество записей в бд, включающих в себя name
+def words_count_by_name(name: str, db: Session):
+    return db.query(func.count(Word.id)).filter(Word.name.ilike(name + '%')).scalar()
 
 #Найти слово по id
 def get_word_by_id(id: int, db: Session):
     return db.query(Word).filter(Word.id == id).first()
 
 #Поиск слова
-def get_word_by_name(name: str, db: Session, page: int = 0, size: int = 20):
+def get_word_by_name(name: str, db: Session, page: int = 0, size: int = 100):
     skip = page * size
     limit = (page + 1) * size
-    return db.query(Word).filter(Word.name.ilike(name + '%')).order_by(Word.name).offset(skip).limit(limit).all()
+    return db.query(Word).filter(Word.name.ilike(name + '%')).order_by(Word.name).offset(skip).limit(size).all()
 
 #Добавить слово
 def add_word(data: word.Word, db: Session):

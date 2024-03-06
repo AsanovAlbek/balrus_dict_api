@@ -11,15 +11,23 @@ async def add_word(data: wordDto.Word, db: Session = Depends(get_connection)):
     return service.add_word(data, db)
 
 @routers.get('/words', tags=['word'])
-async def get_all_words(page: int = None, size: int = None, db: Session = Depends(get_connection)):
+async def get_all_words(page: int = 0, size: int = 100, db: Session = Depends(get_connection)):
     return service.get_all_words(db = db, page = page, size=size)
+
+@routers.get('/words_count', tags=['word'])
+async def all_words_count(db: Session = Depends(get_connection)):
+    return service.words_count(db)
+
+@routers.get('/words_count/{name}', tags=['word'])
+async def words_count_by_name(name: str, db: Session = Depends(get_connection)):
+    return service.words_count_by_name(name, db)
 
 @routers.get('/{id}', tags=['word'])
 async def get_word_by_id(id: int = None, db: Session = Depends(get_connection)):
     return service.get_word_by_id(id, db)
 
 @routers.get('/words/{name}', tags=['word'])
-async def get_words_by_name(name: str, page: int = None, size: int = None, db: Session = Depends(get_connection)):
+async def get_words_by_name(name: str, page: int = 0, size: int = 100, db: Session = Depends(get_connection)):
     return service.get_word_by_name(name=name, db=db, page=page, size=size)
 
 @routers.delete('/{id}', tags=['word'])
