@@ -6,7 +6,6 @@ from model.word import Word
 #Все слова
 def get_all_words(db: Session, page: int = 0, size: int = 100):
     skip = page * size
-    limit =(page + 1) * size
     return db.query(Word).order_by(Word.name).offset(skip).limit(size).all()
 
 #Количество записей в бд
@@ -24,7 +23,6 @@ def get_word_by_id(id: int, db: Session):
 #Поиск слова
 def get_word_by_name(name: str, db: Session, page: int = 0, size: int = 100):
     skip = page * size
-    limit = (page + 1) * size
     return db.query(Word).filter(Word.name.ilike(name + '%')).order_by(Word.name).offset(skip).limit(size).all()
 
 #Добавить слово
@@ -58,7 +56,8 @@ def update_word(data: word.Word, id: int, db: Session):
     return wd
 
 
-
+#Копирование структуры word. Если слово model уже есть, то изменяем его
+#Иначе создаём новый экземпляр
 def __word_from_dto(dto_model: word.Word, model: Word = None):
     if model:
         model.name = dto_model.name
