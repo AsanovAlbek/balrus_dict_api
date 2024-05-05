@@ -1,14 +1,22 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, UploadFile, Body, File, Form
 from sqlalchemy.orm import Session
 from database.database import get_connection
 from api import service
 from dto import word as wordDto
+from pydantic import BaseModel
+
+class FileRequestBody(BaseModel):
+    file_path: str
 
 routers = APIRouter()
 
 @routers.post('/', tags=['word'])
-async def add_word(data: wordDto.Word, db: Session = Depends(get_connection)):
-    return service.add_word(data, db)
+async def add_word(word: wordDto.Word, db: Session = Depends(get_connection)):
+    return service.add_word(data = word, db = db)
+
+@routers.post('/{id}', tags=['word'])
+async def update_word(word: wordDto.Word, id: int = None, db: Session = Depends(get_connection)):
+    return service.update_word(data = word, id = id, db = db)
 
 @routers.get('/words', tags=['word'])
 async def get_all_words(page: int = 0, size: int = 100, db: Session = Depends(get_connection)):
@@ -32,8 +40,16 @@ async def get_words_by_name(name: str, page: int = 0, size: int = 100, db: Sessi
 
 @routers.delete('/{id}', tags=['word'])
 async def delete_word(id: int = None, db: Session = Depends(get_connection)):
-    return service.delete_word(id, db)
+    return service.delete_word(id = id, db = db)
 
-@routers.put('/{id}', tags=['word'])
-async def update_word(data: wordDto.Word, id: int = None, db: Session = Depends(get_connection)):
-    return service.update_word(data, id, db)
+@routers.post('/upload_file/', tags=['files'])
+async def upload_file(file: UploadFile):
+    return service.upload_file(file=file)
+
+@routers.get('/get_file/', tags=['files'])
+async def get_file(file_path: str):
+    return service.get_file(file_path=file_path)
+
+@routers.post('/delete_file/', tags=['files'])
+async def delete_file(word_id: int, db: Session = Depends(get_connection)):
+    return service.delete_file(word_id=word_id, db=db)
