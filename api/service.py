@@ -89,7 +89,7 @@ def upload_file(file: UploadFile):
         stfp_connection = ssh.open_sftp()
 
         str_date_time = datetime.now().strftime('%d-%m-%Y-%H-%M-%S')
-        file_path: str = '/balrusapi/audio/' + str_date_time + '_' + file.filename
+        file_path: str = '/balrusapi/audio/' + str_date_time + '_rusbal_' + file.filename
         file_path = file_path.replace(' ', '_')
         stfp_connection.putfo(file.file, file_path)
 
