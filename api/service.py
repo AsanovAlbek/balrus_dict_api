@@ -1,14 +1,17 @@
 import paramiko.ssh_gss
 from sqlalchemy.orm import Session
-from sqlalchemy import func
-from dto import word
+from sqlalchemy import func, and_
+from dto import word, favorite_word, user
 from model.word import Word
+from model.user import User
+from model.favorite_word import FavoriteWord
 from fastapi import UploadFile
 from fastapi.responses import StreamingResponse, FileResponse, Response
 from datetime import datetime
 import traceback
 import paramiko
 import base64
+import hashlib
 
 stfp_hostname = "31.41.63.47"
 stfp_port = "7637"
@@ -52,19 +55,22 @@ def add_word(data: word.Word, db: Session):
 #Удалить слово
 def delete_word(id: int, db: Session):
     deleted_word = db.query(Word).filter(Word.id == id).first()
-    try:
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect(hostname=stfp_hostname, port=stfp_port, username=stfp_username, password=stfp_password)
-        stfp_connection = ssh.open_sftp()
-        stfp_connection.remove(deleted_word.audio_url)
-        stfp_connection.close()
-        ssh.close()
-        db.query(Word).filter(Word.id == id).delete()
-        db.commit()
-    except Exception as e:
-        traceback.print_exc()
-        traceback.print_stack()
+    
+    if deleted_word.audio_url:
+        try:
+            ssh = paramiko.SSHClient()
+            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            ssh.connect(hostname=stfp_hostname, port=stfp_port, username=stfp_username, password=stfp_password)
+            stfp_connection = ssh.open_sftp()
+            stfp_connection.remove(deleted_word.audio_url)
+            stfp_connection.close()
+            ssh.close()
+        except Exception as e:
+            traceback.print_exc()
+            traceback.print_stack()
+
+    db.query(Word).filter(Word.id == id).delete()
+    db.commit()
     return deleted_word
 
 #Обновить (изменить) слово
@@ -154,7 +160,59 @@ def delete_file(word_id: int, db: Session):
         print(e)
         print(traceback.format_exc())
         return {'file_path': 'error file_path'}
+    
+def hash_password(password: str):
+    salt = 'user_password_salt'
+    return hashlib.sha512(password.encode() + salt.encode()).hexdigest()
+    
 
+def register_user(data: user.User, db: Session):
+    data.password = hash_password(data.password)
+    new_user = __user_from_dto(data)
+    #Шифрование пароля
+    print(f'user password after hash = {new_user.password}')
+    print(new_user.id)
+    print(new_user.email)
+    print(new_user.username)
+    print(new_user.password)
+    print(new_user.imei)
+    try:
+       if new_user.id == 0:
+           new_user.id = None
+       db.add(new_user)
+       db.commit()
+       db.refresh(new_user)
+    except Exception as e:
+       print(e)
+    return {'new_user': new_user}
+    
+def get_user(email: str, password: str, db: Session):
+    return db.query(User).filter(and_(
+        User.email == email,
+        User.password == hash_password(password)
+    )).first()
+
+def add_to_favorites(data: favorite_word.FavoriteWord, db: Session):
+    favorite = __favorite_from_dto(data)
+    try:
+        db.add(favorite)
+        db.commit()
+        db.refresh(favorite)
+    except Exception as e:
+        print(e)
+    return favorite
+
+def remove_from_favorites(user_id: int, word_id: int, db: Session):
+    favorite = db.query(FavoriteWord).filter(and_(FavoriteWord.user_id == user_id, FavoriteWord.word_id == word_id)).first()
+    try:
+        db.query(FavoriteWord).filter(and_(FavoriteWord.user_id == user_id, FavoriteWord.word_id == word_id)).delete()
+        db.commit()
+    except Exception as e:
+        print(e)
+    return favorite
+
+def get_favorite_words(user_id: int, db: Session):
+    return db.query(FavoriteWord).filter(FavoriteWord.user_id == user_id).all()
 
 #Копирование структуры word. Если слово model уже есть, то изменяем его
 #Иначе создаём новый экземпляр
@@ -170,4 +228,33 @@ def __word_from_dto(dto_model: word.Word, model: Word = None):
             name = dto_model.name,
             meaning = dto_model.meaning,
             audio_url = dto_model.audio_url
+        )
+
+def __user_from_dto(dto_model: user.User, model: User = None):
+    if model:
+        model.username = dto_model.username
+        model.email = dto_model.email
+        model.password = dto_model.password
+        model.imei = dto_model.imei
+        return model
+    else:
+        return User(
+            id = dto_model.id,
+            username = dto_model.username,
+            email = dto_model.email,
+            password = dto_model.password,
+            imei = dto_model.imei
+        )
+
+  
+def __favorite_from_dto(dto_model: favorite_word.FavoriteWord, model: FavoriteWord = None):
+    if model:
+        model.user_id = dto_model.user_id
+        model.word_id = dto_model.word_id
+        return model
+    else:
+        return FavoriteWord(
+            id = dto_model.id,
+            user_id = dto_model.user_id,
+            word_id = dto_model.word_id
         )
