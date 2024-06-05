@@ -155,9 +155,6 @@ def delete_file(word_id: int, db: Session):
         ssh.close()
         return {'file_path': file_path}
     except Exception as e:
-        #print(e)
-        #print(traceback.format_exc())
-        print(f'files = {stfp_connection.listdir_attr('/balrusapi/audio/')}')
         return {'file_path': 'error file_path'}
 
 
