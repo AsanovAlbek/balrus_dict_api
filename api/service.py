@@ -57,7 +57,9 @@ def delete_word(id: int, db: Session):
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         ssh.connect(hostname=stfp_hostname, port=stfp_port, username=stfp_username, password=stfp_password)
         stfp_connection = ssh.open_sftp()
-        stfp_connection.remove(deleted_word.audio_url)
+        print(f'files {stfp_connection.listdir('/balrusapi/audio/')}')
+        if deleted_word.audio_url.split('/')[-1] in stfp_connection.listdir('/balrusapi/audio/'):
+            stfp_connection.remove(deleted_word.audio_url)
         stfp_connection.close()
         ssh.close()
         db.query(Word).filter(Word.id == id).delete()
@@ -137,22 +139,25 @@ def delete_file(word_id: int, db: Session):
         word = db.query(Word).filter(Word.id == word_id).first()
         file_path = ''
         if word:
-            print('word founded')
+            print('word founded for delete')
             file_path = word.audio_url
-            stfp_connection.remove(file_path)
-            word.audio_url = ''
+            if word.audio_url.split('/')[-1] in stfp_connection.listdir('/balrusapi/audio/'):
+                stfp_connection.remove(file_path)
+            word1 = word
+            word1.audio_url = ''
 
-            db.add(word)
+            db.add(word1)
             db.commit()
-            db.refresh(word)
+            db.refresh(word1)
         else:
             print('word not founded')
         stfp_connection.close()
         ssh.close()
         return {'file_path': file_path}
     except Exception as e:
-        print(e)
-        print(traceback.format_exc())
+        #print(e)
+        #print(traceback.format_exc())
+        print(f'files = {stfp_connection.listdir_attr('/balrusapi/audio/')}')
         return {'file_path': 'error file_path'}
 
 
