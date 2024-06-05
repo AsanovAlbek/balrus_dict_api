@@ -57,7 +57,6 @@ def delete_word(id: int, db: Session):
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         ssh.connect(hostname=stfp_hostname, port=stfp_port, username=stfp_username, password=stfp_password)
         stfp_connection = ssh.open_sftp()
-        print(f'files {stfp_connection.listdir('/balrusapi/audio/')}')
         if deleted_word.audio_url.split('/')[-1] in stfp_connection.listdir('/balrusapi/audio/'):
             stfp_connection.remove(deleted_word.audio_url)
         stfp_connection.close()
