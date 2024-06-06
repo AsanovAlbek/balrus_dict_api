@@ -10,6 +10,10 @@ class FileRequestBody(BaseModel):
 
 routers = APIRouter()
 
+@routers.get('/', tags=['start'])
+async def start():
+    return {'message', 'successfuly connected'}
+
 @routers.post('/', tags=['word'])
 async def add_word(word: wordDto.Word, db: Session = Depends(get_connection)):
     return service.add_word(data = word, db = db)
