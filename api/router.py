@@ -10,6 +10,11 @@ class FileRequestBody(BaseModel):
 
 routers = APIRouter()
 
+@routers.head('/')
+@routers.get('/')
+async def init():
+    return {'message', 'connected successfuly'}
+
 @routers.post('/', tags=['word'])
 async def add_word(word: word.Word, db: Session = Depends(get_connection)):
     return service.add_word(data = word, db = db)
@@ -61,6 +66,10 @@ async def register_new_user(data: user.User, db: Session = Depends(get_connectio
 @routers.get('/user/', tags=['auth'])
 async def get_user(email: str, password: str, db: Session = Depends(get_connection)):
     return service.get_user(email=email, password=password, db=db)
+
+@routers.get('/user/{user_id}', tags=['auth'])
+async def get_user_by_id(user_id: int, db: Session = Depends(get_connection)):
+    return service.get_user_by_id(user_id=user_id, db=db)
 
 @routers.get('/favorite_words/', tags=['favorites'])
 async def get_favorite_words(user_id: int, db: Session = Depends(get_connection)):

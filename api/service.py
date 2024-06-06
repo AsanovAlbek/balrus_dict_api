@@ -194,6 +194,9 @@ def get_user(email: str, password: str, db: Session):
             return u
     return None
 
+def get_user_by_id(user_id: int, db: Session):
+    return db.query(User).filter(User.id == user_id).first()
+
 def add_to_favorites(data: favorite_word.FavoriteWord, db: Session):
     favorite = __favorite_from_dto(data)
     try:
