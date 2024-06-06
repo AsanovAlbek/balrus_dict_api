@@ -219,7 +219,8 @@ def remove_from_favorites(user_id: int, word_id: int, db: Session):
     return favorite
 
 def get_favorite_words(user_id: int, db: Session):
-    return db.query(FavoriteWord).filter(FavoriteWord.user_id == user_id).all()
+    favorite_words = db.query(FavoriteWord).filter(FavoriteWord.user_id == user_id).all()
+    return [db.query(Word).filter(Word.id == fav.word_id).first() for fav in favorite_words]
 
 #Копирование структуры word. Если слово model уже есть, то изменяем его
 #Иначе создаём новый экземпляр
