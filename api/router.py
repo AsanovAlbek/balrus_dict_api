@@ -10,6 +10,7 @@ class FileRequestBody(BaseModel):
 
 routers = APIRouter()
 
+@routers.head('/')
 @routers.get('/', tags=['start'])
 async def start():
     return {'message', 'successfuly connected'}
