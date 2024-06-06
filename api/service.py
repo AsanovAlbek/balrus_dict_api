@@ -1,6 +1,6 @@
 import paramiko.ssh_gss
 from sqlalchemy.orm import Session
-from sqlalchemy import func, and_
+from sqlalchemy import func, and_, exists
 from dto import word, favorite_word, user
 from model.word import Word
 from model.user import User
@@ -161,6 +161,7 @@ def delete_file(word_id: int, db: Session):
         print(traceback.format_exc())
         return {'file_path': 'error file_path'}
     
+#Шифрование пароля
 def hash_password(password: str):
     salt = 'user_password_salt'
     return hashlib.sha512(password.encode() + salt.encode()).hexdigest()
@@ -169,14 +170,10 @@ def hash_password(password: str):
 def register_user(data: user.User, db: Session):
     data.password = hash_password(data.password)
     new_user = __user_from_dto(data)
-    #Шифрование пароля
-    print(f'user password after hash = {new_user.password}')
-    print(new_user.id)
-    print(new_user.email)
-    print(new_user.username)
-    print(new_user.password)
-    print(new_user.imei)
     try:
+       is_user_exist = db.query(db.query(User).filter(User.email == new_user.email).exists()).scalar()
+       if is_user_exist:
+           return None
        if new_user.id == 0:
            new_user.id = None
        db.add(new_user)
@@ -184,17 +181,22 @@ def register_user(data: user.User, db: Session):
        db.refresh(new_user)
     except Exception as e:
        print(e)
-    return {'new_user': new_user}
+    return new_user
     
 def get_user(email: str, password: str, db: Session):
-    return db.query(User).filter(and_(
-        User.email == email,
-        User.password == hash_password(password)
-    )).first()
+    u = db.query(User).filter(User.email == email).first()
+    if u:
+        hashed_password = hash_password(password)
+        print(f'hashed password = {hashed_password} user password = {u.password}')
+        if hashed_password == u.password:
+            return u
+    return None
 
 def add_to_favorites(data: favorite_word.FavoriteWord, db: Session):
     favorite = __favorite_from_dto(data)
     try:
+        if favorite.id == 0:
+            favorite.id = None
         db.add(favorite)
         db.commit()
         db.refresh(favorite)
