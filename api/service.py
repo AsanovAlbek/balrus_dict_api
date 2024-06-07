@@ -202,12 +202,15 @@ def add_to_favorites(data: favorite_word.FavoriteWord, db: Session):
     try:
         if favorite.id == 0:
             favorite.id = None
+        fav_exists = db.query(db.query(FavoriteWord).filter(FavoriteWord.id == favorite.id).exists()).scalar()
+        if fav_exists:
+            db.query(FavoriteWord).filter(FavoriteWord.id == favorite.id).delete()
         db.add(favorite)
         db.commit()
         db.refresh(favorite)
     except Exception as e:
         print(e)
-    return favorite
+    return db.query(Word).filter(Word.id == favorite.word_id).first()
 
 def remove_from_favorites(user_id: int, word_id: int, db: Session):
     favorite = db.query(FavoriteWord).filter(and_(FavoriteWord.user_id == user_id, FavoriteWord.word_id == word_id)).first()
@@ -216,7 +219,7 @@ def remove_from_favorites(user_id: int, word_id: int, db: Session):
         db.commit()
     except Exception as e:
         print(e)
-    return favorite
+    return db.query(Word).filter(Word.id == favorite.word_id).first()
 
 def get_favorite_words(user_id: int, db: Session):
     favorite_words = db.query(FavoriteWord).filter(FavoriteWord.user_id == user_id).all()
