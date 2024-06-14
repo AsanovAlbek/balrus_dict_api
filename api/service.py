@@ -1,3 +1,4 @@
+import hashlib
 import paramiko.ssh_gss
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -9,6 +10,8 @@ from datetime import datetime
 import traceback
 import paramiko
 import base64
+from dto import word, user
+from model.user import User
 
 stfp_hostname = "31.41.63.47"
 stfp_port = "7637"
@@ -57,7 +60,6 @@ def delete_word(id: int, db: Session):
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         ssh.connect(hostname=stfp_hostname, port=stfp_port, username=stfp_username, password=stfp_password)
         stfp_connection = ssh.open_sftp()
-        print(f'files {stfp_connection.listdir('/balrusapi/audio/')}')
         if deleted_word.audio_url.split('/')[-1] in stfp_connection.listdir('/balrusapi/audio/'):
             stfp_connection.remove(deleted_word.audio_url)
         stfp_connection.close()
@@ -155,11 +157,57 @@ def delete_file(word_id: int, db: Session):
         ssh.close()
         return {'file_path': file_path}
     except Exception as e:
-        #print(e)
-        #print(traceback.format_exc())
-        print(f'files = {stfp_connection.listdir_attr('/balrusapi/audio/')}')
         return {'file_path': 'error file_path'}
+    
+#Шифрование пароля
+def hash_password(password: str):
+    salt = 'user_password_salt'
+    return hashlib.sha512(password.encode() + salt.encode()).hexdigest()
+    
 
+def register_user(data: user.User, db: Session):
+    data.password = hash_password(data.password)
+    new_user = __user_from_dto(data)
+    try:
+       is_user_exist = db.query(db.query(User).filter(User.email == new_user.email).exists()).scalar()
+       if is_user_exist:
+           return None
+       if new_user.id == 0:
+           new_user.id = None
+       db.add(new_user)
+       db.commit()
+       db.refresh(new_user)
+    except Exception as e:
+       print(e)
+    return new_user
+    
+def get_user(email: str, password: str, db: Session):
+    u = db.query(User).filter(User.email == email).first()
+    if u:
+        hashed_password = hash_password(password)
+        print(f'hashed password = {hashed_password} user password = {u.password}')
+        if hashed_password == u.password:
+            return u
+    return None
+
+def get_user_by_id(user_id: int, db: Session):
+    return db.query(User).filter(User.id == user_id).first()
+
+def __user_from_dto(dto_model: user.User, model: User = None):
+    if model:
+        model.username = dto_model.username
+        model.email = dto_model.email
+        model.password = dto_model.password
+        model.imei = dto_model.imei
+        return model
+    else:
+        return User(
+            id = dto_model.id,
+            username = dto_model.username,
+            email = dto_model.email,
+            password = dto_model.password,
+            imei = dto_model.imei
+        )
 
 #Копирование структуры word. Если слово model уже есть, то изменяем его
 #Иначе создаём новый экземпляр

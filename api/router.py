@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from database.database import get_connection
 from api import service
 from dto import word as wordDto
+from dto import user as userDto
 from pydantic import BaseModel
 
 class FileRequestBody(BaseModel):
@@ -53,3 +54,15 @@ async def get_file(file_path: str):
 @routers.post('/delete_file/', tags=['files'])
 async def delete_file(word_id: int, db: Session = Depends(get_connection)):
     return service.delete_file(word_id=word_id, db=db)
+
+@routers.post('/register/', tags=['auth'])
+async def register_new_user(data: userDto.User, db: Session = Depends(get_connection)):
+    return service.register_user(data=data, db=db)
+
+@routers.get('/user/', tags=['auth'])
+async def get_user(email: str, password: str, db: Session = Depends(get_connection)):
+    return service.get_user(email=email, password=password, db=db)
+
+@routers.get('/user/{user_id}', tags=['auth'])
+async def get_user_by_id(user_id: int, db: Session = Depends(get_connection)):
+    return service.get_user_by_id(user_id=user_id, db=db)
