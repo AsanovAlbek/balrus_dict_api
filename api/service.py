@@ -1,10 +1,14 @@
 import hashlib
+import random
+from fastapi_mail import FastMail, MessageSchema, MessageType
 import paramiko.ssh_gss
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from dto import word
+from dto import word, suggest_word
+from model import mail_sender
 from model.word import Word
-from fastapi import UploadFile
+from model.suggest_word import SuggestWord
+from fastapi import UploadFile, HTTPException, BackgroundTasks
 from fastapi.responses import StreamingResponse, FileResponse, Response
 from datetime import datetime
 import traceback
@@ -192,6 +196,66 @@ def get_user(email: str, password: str, db: Session):
 
 def get_user_by_id(user_id: int, db: Session):
     return db.query(User).filter(User.id == user_id).first()
+
+async def send_restore_code(email: str, background_tasks: BackgroundTasks, db: Session):
+    code = None
+    try:
+        code = random.randint(100000, 999999)
+        # генерация 6ти значного кода
+        message = MessageSchema(
+            subject='Код для восстановления пароля',
+            body=f'Ваш код восстановления пароля {code}',
+            recipients=[email],
+            subtype=MessageType.plain
+        )
+        sender = FastMail(mail_sender.mailconf)
+        background_tasks.add_task(sender.send_message, message)
+    except Exception as e:
+        print(e)
+        raise e
+    return {'restore_password_code' : code}
+
+def update_user_password(user_id: int, password: str, db: Session):
+    try:
+        user = get_user_by_id(user_id, db)
+        if user:
+            hashed_password = hash_password(password)
+            user.password = hashed_password
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        else:
+            raise HTTPException(status_code=404, detail='Пользователь не найден')
+    except Exception as e:
+        print(e)
+        raise e
+    
+def add_suggets_word(data: suggest_word.SuggestWord, db: Session):
+    try:
+        suggest = SuggestWord(
+            word=data.word,
+            meaning=data.meaning,
+            user_id=data.user_id
+        )
+        db.add(suggest)
+        db.commit()
+        db.refresh(suggest)
+        return suggest
+    except Exception as e:
+        print(e)
+        raise e
+    
+def get_suggest_words(name: str, db: Session, page: int= 0, size: int = 15):
+    try:
+        skip = page * size
+        return db.query(SuggestWord).filter(SuggestWord.name.ilike(name + '%')).order_by(SuggestWord.name).offset(skip).limit(size).all()
+    except Exception as e:
+        print(e)
+        raise e
+
+def suggest_size(name: str, db: Session):
+    return db.query(func.count(SuggestWord.id)).filter(SuggestWord.name.ilike(name + '%')).scalar()
+        
 
 def __user_from_dto(dto_model: user.User, model: User = None):
     if model:
