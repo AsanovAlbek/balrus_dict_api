@@ -18,11 +18,11 @@ async def start():
     return {'message', 'successfuly connected'}
 
 @routers.post('/', tags=['word'])
-async def add_word(word: wordDto.Word, db: Session = Depends(get_connection)):
+async def add_word(word: word.Word, db: Session = Depends(get_connection)):
     return service.add_word(data = word, db = db)
 
 @routers.post('/{id}', tags=['word'])
-async def update_word(word: wordDto.Word, id: int = None, db: Session = Depends(get_connection)):
+async def update_word(word: word.Word, id: int = None, db: Session = Depends(get_connection)):
     return service.update_word(data = word, id = id, db = db)
 
 @routers.get('/words', tags=['word'])
@@ -30,10 +30,6 @@ async def get_all_words(page: int = 0, size: int = 100, db: Session = Depends(ge
     return service.get_all_words(db = db, page = page, size=size)
 
 @routers.get('/words_count', tags=['word'])
-async def all_words_count(db: Session = Depends(get_connection)):
-    return service.words_count(db)
-
-@routers.get('/words_count/{name}', tags=['word'])
 async def words_count_by_name(name: str, db: Session = Depends(get_connection)):
     return service.words_count_by_name(name, db)
 

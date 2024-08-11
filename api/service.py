@@ -66,6 +66,8 @@ def delete_word(id: int, db: Session):
         stfp_connection = ssh.open_sftp()
         if deleted_word.audio_url.split('/')[-1] in stfp_connection.listdir('/balrusapi/audio/'):
             stfp_connection.remove(deleted_word.audio_url)
+        if deleted_word.audio_url.split('/')[-1] in stfp_connection.listdir('/balrusapi/audio/'):
+            stfp_connection.remove(deleted_word.audio_url)
         stfp_connection.close()
         ssh.close()
         db.query(Word).filter(Word.id == id).delete()
@@ -73,6 +75,10 @@ def delete_word(id: int, db: Session):
     except Exception as e:
         traceback.print_exc()
         traceback.print_stack()
+    return deleted_word
+
+    db.query(Word).filter(Word.id == id).delete()
+    db.commit()
     return deleted_word
 
 #Обновить (изменить) слово
@@ -97,6 +103,7 @@ def upload_file(file: UploadFile):
         stfp_connection = ssh.open_sftp()
 
         str_date_time = datetime.now().strftime('%d-%m-%Y-%H-%M-%S')
+        file_path: str = '/balrusapi/audio/' + str_date_time + '_rusbal_' + file.filename
         file_path: str = '/balrusapi/audio/' + str_date_time + '_rusbal_' + file.filename
         file_path = file_path.replace(' ', '_')
         stfp_connection.putfo(file.file, file_path)
@@ -146,14 +153,21 @@ def delete_file(word_id: int, db: Session):
         file_path = ''
         if word:
             print('word founded for delete')
+            print('word founded for delete')
             file_path = word.audio_url
+            if word.audio_url.split('/')[-1] in stfp_connection.listdir('/balrusapi/audio/'):
+                stfp_connection.remove(file_path)
+            word1 = word
+            word1.audio_url = ''
             if word.audio_url.split('/')[-1] in stfp_connection.listdir('/balrusapi/audio/'):
                 stfp_connection.remove(file_path)
             word1 = word
             word1.audio_url = ''
 
             db.add(word1)
+            db.add(word1)
             db.commit()
+            db.refresh(word1)
             db.refresh(word1)
         else:
             print('word not founded')
@@ -287,4 +301,33 @@ def __word_from_dto(dto_model: word.Word, model: Word = None):
             name = dto_model.name,
             meaning = dto_model.meaning,
             audio_url = dto_model.audio_url
+        )
+
+def __user_from_dto(dto_model: user.User, model: User = None):
+    if model:
+        model.username = dto_model.username
+        model.email = dto_model.email
+        model.password = dto_model.password
+        model.imei = dto_model.imei
+        return model
+    else:
+        return User(
+            id = dto_model.id,
+            username = dto_model.username,
+            email = dto_model.email,
+            password = dto_model.password,
+            imei = dto_model.imei
+        )
+
+  
+def __favorite_from_dto(dto_model: favorite_word.FavoriteWord, model: FavoriteWord = None):
+    if model:
+        model.user_id = dto_model.user_id
+        model.word_id = dto_model.word_id
+        return model
+    else:
+        return FavoriteWord(
+            id = dto_model.id,
+            user_id = dto_model.user_id,
+            word_id = dto_model.word_id
         )
