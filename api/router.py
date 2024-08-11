@@ -18,11 +18,11 @@ async def start():
     return {'message', 'successfuly connected'}
 
 @routers.post('/', tags=['word'])
-async def add_word(word: word.Word, db: Session = Depends(get_connection)):
+async def add_word(word: wordDto.Word, db: Session = Depends(get_connection)):
     return service.add_word(data = word, db = db)
 
 @routers.post('/{id}', tags=['word'])
-async def update_word(word: word.Word, id: int = None, db: Session = Depends(get_connection)):
+async def update_word(word: wordDto.Word, id: int = None, db: Session = Depends(get_connection)):
     return service.update_word(data = word, id = id, db = db)
 
 @routers.get('/words', tags=['word'])

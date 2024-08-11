@@ -4,8 +4,9 @@ from fastapi_mail import FastMail, MessageSchema, MessageType
 import paramiko.ssh_gss
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from dto import word, suggest_word
+from dto import favorite_word, word, suggest_word
 from model import mail_sender
+from model.favorite_word import FavoriteWord
 from model.word import Word
 from model.suggest_word import SuggestWord
 from fastapi import UploadFile, HTTPException, BackgroundTasks
