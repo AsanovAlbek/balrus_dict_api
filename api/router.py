@@ -90,5 +90,5 @@ async def send_password_restore_code(email: str, background_tasks: BackgroundTas
     return await service.send_restore_code(email=email, background_tasks=background_tasks, db=db)
 
 @routers.post('/update_password/', tags=['auth'])
-async def update_user_password(user_id: int, password: str, db: Session = Depends(get_connection)):
-    return service.update_user_password(user_id=user_id, password=password, db=db)
+async def update_user_password(email: str, password: str, db: Session = Depends(get_connection)):
+    return service.update_user_password(email=email, password=password, db=db)

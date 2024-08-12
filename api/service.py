@@ -215,9 +215,9 @@ async def send_restore_code(email: str, background_tasks: BackgroundTasks, db: S
         raise e
     return {'restore_password_code' : code}
 
-def update_user_password(user_id: int, password: str, db: Session):
+def update_user_password(email: str, password: str, db: Session):
     try:
-        user = get_user_by_id(user_id, db)
+        user = db.query(User).filter(User.email == email).first()
         if user:
             hashed_password = hash_password(password)
             user.password = hashed_password
@@ -259,7 +259,7 @@ def suggest_size(name: str, db: Session):
 
 def __user_from_dto(dto_model: user.User, model: User = None):
     if model:
-        model.username = dto_model.username
+        model.name = dto_model.name
         model.email = dto_model.email
         model.password = dto_model.password
         model.imei = dto_model.imei
@@ -267,7 +267,7 @@ def __user_from_dto(dto_model: user.User, model: User = None):
     else:
         return User(
             id = dto_model.id,
-            username = dto_model.username,
+            name = dto_model.name,
             email = dto_model.email,
             password = dto_model.password,
             imei = dto_model.imei
