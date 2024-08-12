@@ -25,15 +25,15 @@ async def add_word(word: wordDto.Word, db: Session = Depends(get_connection)):
 async def update_word(word: wordDto.Word, id: int = None, db: Session = Depends(get_connection)):
     return service.update_word(data = word, id = id, db = db)
 
-@routers.get('/words', tags=['word'])
+@routers.get('/words/', tags=['word'])
 async def get_all_words(page: int = 0, size: int = 100, db: Session = Depends(get_connection)):
     return service.get_all_words(db = db, page = page, size=size)
 
-@routers.get('/words_count', tags=['word'])
+@routers.get('/words_count/', tags=['word'])
 async def all_words_count(db: Session = Depends(get_connection)):
     return service.words_count(db)
 
-@routers.get('/words_count/{name}', tags=['word'])
+@routers.get('/words_count/', tags=['word'])
 async def words_count_by_name(name: str, db: Session = Depends(get_connection)):
     return service.words_count_by_name(name, db)
 
@@ -41,7 +41,7 @@ async def words_count_by_name(name: str, db: Session = Depends(get_connection)):
 async def get_word_by_id(id: int = None, db: Session = Depends(get_connection)):
     return service.get_word_by_id(id, db)
 
-@routers.get('/words/{name}', tags=['word'])
+@routers.get('/words/', tags=['word'])
 async def get_words_by_name(name: str, page: int = 0, size: int = 100, db: Session = Depends(get_connection)):
     return service.get_word_by_name(name=name, db=db, page=page, size=size)
 
