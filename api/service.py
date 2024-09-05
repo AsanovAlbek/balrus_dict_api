@@ -167,7 +167,6 @@ def delete_file(word_id: int, db: Session):
 def hash_password(password: str):
     salt = 'user_password_salt'
     return hashlib.sha512(password.encode() + salt.encode()).hexdigest()
-    
 
 def register_user(data: user.User, db: Session):
     data.password = hash_password(data.password)
@@ -229,7 +228,7 @@ def update_user_password(email: str, password: str, db: Session):
     except Exception as e:
         print(e)
         raise e
-    
+        
 def add_suggets_word(data: suggest_word.SuggestWord, db: Session):
     try:
         suggest = SuggestWord(
@@ -244,7 +243,7 @@ def add_suggets_word(data: suggest_word.SuggestWord, db: Session):
     except Exception as e:
         print(e)
         raise e
-    
+        
 def get_suggest_words(name: str, db: Session, page: int= 0, size: int = 15):
     try:
         skip = page * size
