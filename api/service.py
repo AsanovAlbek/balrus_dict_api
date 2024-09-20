@@ -45,6 +45,15 @@ def get_word_by_name(name: str, db: Session, page: int = 0, size: int = 100):
     skip = page * size
     return db.query(Word).filter(Word.name.ilike(name + '%')).order_by(Word.name).offset(skip).limit(size).all()
 
+def get_words(name: str, db: Session, page: int = 0, size: int = 100):
+    skip = page * size
+    words_with_paging = db.query(Word).filter(Word.name.ilike(name + '%')).order_by(Word.name).offset(skip).limit(size).all()
+    all_words_count = db.query(func.count(Word.id)).filter(Word.name.ilike(name + '%')).scalar()
+    return {
+        "words": words_with_paging,
+        "all_words_count": all_words_count
+    }
+
 #Добавить слово
 def add_word(data: word.Word, db: Session):
     new_word = __word_from_dto(data)
@@ -243,17 +252,47 @@ def add_suggets_word(data: suggest_word.SuggestWord, db: Session):
     except Exception as e:
         print(e)
         raise e
+
+def reject_suggest_word(id: int, db: Session):
+    try:
+        suggest = db.query(SuggestWord).filter(SuggestWord.id == id).first()
+        db.query(SuggestWord).filter(SuggestWord.id == id).delete()
+        db.commit()
+        return suggest
+    except Exception as e:
+        print(e)
+        raise e
+    
+def accept_suggest_word(id: int, db: Session):
+    try:
+        suggest = db.query(SuggestWord).filter(SuggestWord.id == id).first()
+        if suggest:
+            word = Word(
+                name=suggest.word,
+                meaning=suggest.meaning,
+                audio_url = ''
+            )
+            db.add(word)
+            db.query(SuggestWord).filter(SuggestWord.id == id).delete(synchronize_session=False)
+            db.commit()
+            db.refresh(word)
+            return word
+        else:
+            return None
+    except Exception as e:
+        print(e)
+        raise e
         
 def get_suggest_words(name: str, db: Session, page: int= 0, size: int = 15):
     try:
         skip = page * size
-        return db.query(SuggestWord).filter(SuggestWord.name.ilike(name + '%')).order_by(SuggestWord.name).offset(skip).limit(size).all()
+        return db.query(SuggestWord).filter(SuggestWord.word.ilike(name + '%')).order_by(SuggestWord.word).offset(skip).limit(size).all()
     except Exception as e:
         print(e)
         raise e
 
 def suggest_size(name: str, db: Session):
-    return db.query(func.count(SuggestWord.id)).filter(SuggestWord.name.ilike(name + '%')).scalar()
+    return db.query(func.count(SuggestWord.id)).filter(SuggestWord.word.ilike(name + '%')).scalar()
         
 
 def __user_from_dto(dto_model: user.User, model: User = None):

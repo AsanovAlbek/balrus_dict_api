@@ -37,6 +37,10 @@ async def all_words_count(db: Session = Depends(get_connection)):
 async def words_count_by_name(name: str, db: Session = Depends(get_connection)):
     return service.words_count_by_name(name, db)
 
+@routers.get('/get_words/{name}', tags=['word'])
+async def words(name: str, db: Session = Depends(get_connection), page: int = 0, size: int = 100):
+    return service.get_words(name, db, page, size)
+
 @routers.get('/{id}', tags=['word'])
 async def get_word_by_id(id: int = None, db: Session = Depends(get_connection)):
     return service.get_word_by_id(id, db)
@@ -55,7 +59,15 @@ async def suggest_count(name: str, db: Session = Depends(get_connection)):
 
 @routers.get('/suggests/', tags=['suggest'])
 async def suggests(name: str = '', page: int = 0, size: int = 15, db: Session = Depends(get_connection)):
-    return service.suggests(name, db, page, size)
+    return service.get_suggest_words(name, db, page, size)
+
+@routers.post('/reject_suggest/', tags=['suggest'])
+async def reject_suggest(id: int, db: Session = Depends(get_connection)):
+    return service.reject_suggest_word(id, db)
+
+@routers.post('/accept_suggest/', tags=['suggest'])
+async def accept_suggest(id: int, db: Session = Depends(get_connection)):
+    return service.accept_suggest_word(id, db)
 
 @routers.delete('/{id}', tags=['word'])
 async def delete_word(id: int = None, db: Session = Depends(get_connection)):
