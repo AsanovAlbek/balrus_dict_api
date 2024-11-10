@@ -1,6 +1,9 @@
 import hashlib
 import random
 from fastapi_mail import FastMail, MessageSchema, MessageType
+import hashlib
+import random
+from fastapi_mail import FastMail, MessageSchema, MessageType
 import paramiko.ssh_gss
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -14,6 +17,8 @@ from datetime import datetime
 import traceback
 import paramiko
 import base64
+from dto import word, user
+from model.user import User
 from dto import word, user
 from model.user import User
 
@@ -66,6 +71,8 @@ def delete_word(id: int, db: Session):
         stfp_connection = ssh.open_sftp()
         if deleted_word.audio_url.split('/')[-1] in stfp_connection.listdir('/balrusapi/audio/'):
             stfp_connection.remove(deleted_word.audio_url)
+        if deleted_word.audio_url.split('/')[-1] in stfp_connection.listdir('/balrusapi/audio/'):
+            stfp_connection.remove(deleted_word.audio_url)
         stfp_connection.close()
         ssh.close()
         db.query(Word).filter(Word.id == id).delete()
@@ -101,6 +108,7 @@ def upload_file(file: UploadFile):
         stfp_connection = ssh.open_sftp()
 
         str_date_time = datetime.now().strftime('%d-%m-%Y-%H-%M-%S')
+        file_path: str = '/balrusapi/audio/' + str_date_time + '_rusbal_' + file.filename
         file_path: str = '/balrusapi/audio/' + str_date_time + '_rusbal_' + file.filename
         file_path = file_path.replace(' ', '_')
         stfp_connection.putfo(file.file, file_path)
@@ -150,14 +158,21 @@ def delete_file(word_id: int, db: Session):
         file_path = ''
         if word:
             print('word founded for delete')
+            print('word founded for delete')
             file_path = word.audio_url
+            if word.audio_url.split('/')[-1] in stfp_connection.listdir('/balrusapi/audio/'):
+                stfp_connection.remove(file_path)
+            word1 = word
+            word1.audio_url = ''
             if word.audio_url.split('/')[-1] in stfp_connection.listdir('/balrusapi/audio/'):
                 stfp_connection.remove(file_path)
             word1 = word
             word1.audio_url = ''
 
             db.add(word1)
+            db.add(word1)
             db.commit()
+            db.refresh(word1)
             db.refresh(word1)
         else:
             print('word not founded')
