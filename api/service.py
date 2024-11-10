@@ -208,19 +208,25 @@ def get_user_by_id(user_id: int, db: Session):
 async def send_restore_code(email: str, background_tasks: BackgroundTasks, db: Session):
     code = None
     try:
-        code = random.randint(100000, 999999)
         # генерация 6ти значного кода
+        code = random.randint(100000, 999999)
+        # составление сообщения
         message = MessageSchema(
             subject='Код для восстановления пароля',
             body=f'Ваш код восстановления пароля {code}',
             recipients=[email],
             subtype=MessageType.plain
         )
+        # создание отправителя сообщений
         sender = FastMail(mail_sender.mailconf)
+        # отправка сообщения, бэкграунд таск для того,
+        # чтобы не ожидать отправки сообщения
+        # оно отправится даже после завершения функции
         background_tasks.add_task(sender.send_message, message)
     except Exception as e:
         print(e)
         raise e
+    # Возвращаем код
     return {'restore_password_code' : code}
 
 def update_user_password(email: str, password: str, db: Session):

@@ -55,7 +55,7 @@ async def suggest_word(suggest: suggestDto.SuggestWord, db: Session = Depends(ge
 
 @routers.get('/suggests_count/', tags=['suggest'])
 async def suggest_count(name: str, db: Session = Depends(get_connection)):
-    return service.suggest_count(name, db)
+    return service.suggest_size(name, db)
 
 @routers.get('/suggests/', tags=['suggest'])
 async def suggests(name: str = '', page: int = 0, size: int = 15, db: Session = Depends(get_connection)):
