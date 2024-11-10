@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, UploadFile, Body, File, Form
+from fastapi import APIRouter, BackgroundTasks, Depends, UploadFile, Body, File, Form
 from sqlalchemy.orm import Session
 from database.database import get_connection
 from api import service
-from dto import word, user, favorite_word
+from dto import word, user
 from pydantic import BaseModel
 
 class FileRequestBody(BaseModel):
@@ -67,14 +67,14 @@ async def get_user(email: str, password: str, db: Session = Depends(get_connecti
 async def get_user_by_id(user_id: int, db: Session = Depends(get_connection)):
     return service.get_user_by_id(user_id=user_id, db=db)
 
-@routers.get('/favorite_words/', tags=['favorites'])
-async def get_favorite_words(user_id: int, db: Session = Depends(get_connection)):
-    return service.get_favorite_words(user_id=user_id, db=db)
+@routers.get('/send_restore_code/', tags=['auth'])
+async def send_password_restore_code(email: str, background_tasks: BackgroundTasks, db: Session = Depends(get_connection)):
+    return await service.send_restore_code(email=email, background_tasks=background_tasks, db=db)
 
-@routers.post('/add_favorite_word/', tags=['favorites'])
-async def add_favorite_word(favorite_word: favorite_word.FavoriteWord, db: Session = Depends(get_connection)):
-    return service.add_to_favorites(data=favorite_word, db=db)
+@routers.post('/update_password/', tags=['auth'])
+async def update_user_password(email: str, password: str, db: Session = Depends(get_connection)):
+    return service.update_user_password(email=email, password=password, db=db)
 
-@routers.delete('/delete_favorite_word/', tags=['favorites'])
-async def remove_favorite(user_id: int, word_id: int, db: Session = Depends(get_connection)):
-    return service.remove_from_favorites(user_id=user_id, word_id=word_id, db=db)
+@routers.get('/hash_password/', tags=['helpers'])
+async def hash_password(password: str):
+    return service.hash_password(password=password)

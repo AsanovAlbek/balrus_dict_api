@@ -1,17 +1,21 @@
+import hashlib
+import random
+from fastapi_mail import FastMail, MessageSchema, MessageType
 import paramiko.ssh_gss
 from sqlalchemy.orm import Session
-from sqlalchemy import func, and_, exists
-from dto import word, favorite_word, user
+from sqlalchemy import func
+from dto import word, suggest_word
+from model import mail_sender
 from model.word import Word
-from model.user import User
-from model.favorite_word import FavoriteWord
-from fastapi import UploadFile
+from model.suggest_word import SuggestWord
+from fastapi import UploadFile, HTTPException, BackgroundTasks
 from fastapi.responses import StreamingResponse, FileResponse, Response
 from datetime import datetime
 import traceback
 import paramiko
 import base64
-import hashlib
+from dto import word, user
+from model.user import User
 
 stfp_hostname = "31.41.63.47"
 stfp_port = "7637"
@@ -197,33 +201,102 @@ def get_user(email: str, password: str, db: Session):
 def get_user_by_id(user_id: int, db: Session):
     return db.query(User).filter(User.id == user_id).first()
 
-def add_to_favorites(data: favorite_word.FavoriteWord, db: Session):
-    favorite = __favorite_from_dto(data)
+async def send_restore_code(email: str, background_tasks: BackgroundTasks, db: Session):
+    code = None
     try:
-        if favorite.id == 0:
-            favorite.id = None
-        fav_exists = db.query(db.query(FavoriteWord).filter(FavoriteWord.id == favorite.id).exists()).scalar()
-        if fav_exists:
-            db.query(FavoriteWord).filter(FavoriteWord.id == favorite.id).delete()
-        db.add(favorite)
-        db.commit()
-        db.refresh(favorite)
+        # генерация 6ти значного кода
+        code = random.randint(100000, 999999)
+        # составление сообщения
+        message = MessageSchema(
+            subject='Код для восстановления пароля',
+            body=f'Ваш код восстановления пароля {code}',
+            recipients=[email],
+            subtype=MessageType.plain
+        )
+        # создание отправителя сообщений
+        sender = FastMail(mail_sender.mailconf)
+        # отправка сообщения, бэкграунд таск для того,
+        # чтобы не ожидать отправки сообщения
+        # оно отправится даже после завершения функции
+        background_tasks.add_task(sender.send_message, message)
     except Exception as e:
         print(e)
-    return db.query(Word).filter(Word.id == favorite.word_id).first()
+        raise e
+    # Возвращаем код
+    return {'restore_password_code' : code}
 
-def remove_from_favorites(user_id: int, word_id: int, db: Session):
-    favorite = db.query(FavoriteWord).filter(and_(FavoriteWord.user_id == user_id, FavoriteWord.word_id == word_id)).first()
+def update_user_password(email: str, password: str, db: Session):
     try:
-        db.query(FavoriteWord).filter(and_(FavoriteWord.user_id == user_id, FavoriteWord.word_id == word_id)).delete()
-        db.commit()
+        user = db.query(User).filter(User.email == email).first()
+        if user:
+            hashed_password = hash_password(password)
+            user.password = hashed_password
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        else:
+            raise HTTPException(status_code=404, detail='Пользователь не найден')
     except Exception as e:
         print(e)
-    return db.query(Word).filter(Word.id == favorite.word_id).first()
+        raise e
+        
+def add_suggets_word(data: suggest_word.SuggestWord, db: Session):
+    try:
+        suggest = SuggestWord(
+            word=data.word,
+            meaning=data.meaning,
+            user_id=data.user_id
+        )
+        db.add(suggest)
+        db.commit()
+        db.refresh(suggest)
+        return suggest
+    except Exception as e:
+        print(e)
+        raise e
 
-def get_favorite_words(user_id: int, db: Session):
-    favorite_words = db.query(FavoriteWord).filter(FavoriteWord.user_id == user_id).all()
-    return [db.query(Word).filter(Word.id == fav.word_id).first() for fav in favorite_words]
+def reject_suggest_word(id: int, db: Session):
+    try:
+        suggest = db.query(SuggestWord).filter(SuggestWord.id == id).first()
+        db.query(SuggestWord).filter(SuggestWord.id == id).delete()
+        db.commit()
+        return suggest
+    except Exception as e:
+        print(e)
+        raise e
+    
+def accept_suggest_word(id: int, db: Session):
+    try:
+        suggest = db.query(SuggestWord).filter(SuggestWord.id == id).first()
+        if suggest:
+            word = Word(
+                name=suggest.word,
+                meaning=suggest.meaning,
+                audio_url = ''
+            )
+            db.add(word)
+            db.query(SuggestWord).filter(SuggestWord.id == id).delete(synchronize_session=False)
+            db.commit()
+            db.refresh(word)
+            return word
+        else:
+            return None
+    except Exception as e:
+        print(e)
+        raise e
+        
+def get_suggest_words(name: str, db: Session, page: int= 0, size: int = 15):
+    try:
+        skip = page * size
+        return db.query(SuggestWord).filter(SuggestWord.word.ilike(name + '%')).order_by(SuggestWord.word).offset(skip).limit(size).all()
+    except Exception as e:
+        print(e)
+        raise e
+
+def suggest_size(name: str, db: Session):
+    return db.query(func.count(SuggestWord.id)).filter(SuggestWord.word.ilike(name + '%')).scalar()
+        
+
 
 #Копирование структуры word. Если слово model уже есть, то изменяем его
 #Иначе создаём новый экземпляр
@@ -255,17 +328,4 @@ def __user_from_dto(dto_model: user.User, model: User = None):
             email = dto_model.email,
             password = dto_model.password,
             imei = dto_model.imei
-        )
-
-  
-def __favorite_from_dto(dto_model: favorite_word.FavoriteWord, model: FavoriteWord = None):
-    if model:
-        model.user_id = dto_model.user_id
-        model.word_id = dto_model.word_id
-        return model
-    else:
-        return FavoriteWord(
-            id = dto_model.id,
-            user_id = dto_model.user_id,
-            word_id = dto_model.word_id
         )
