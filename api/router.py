@@ -1,12 +1,10 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, UploadFile, Body, File, Form
-from fastapi import APIRouter, BackgroundTasks, Depends, UploadFile, Body, File, Form
 from sqlalchemy.orm import Session
 from database.database import get_connection
 from api import service
 from dto import word as wordDto
 from dto import user as userDto
 from dto import suggest_word as suggestDto
-
 from pydantic import BaseModel
 
 class FileRequestBody(BaseModel):
@@ -27,13 +25,21 @@ async def add_word(word: wordDto.Word, db: Session = Depends(get_connection)):
 async def update_word(word: wordDto.Word, id: int = None, db: Session = Depends(get_connection)):
     return service.update_word(data = word, id = id, db = db)
 
-@routers.get('/words', tags=['word'])
+@routers.get('/words/', tags=['word'])
 async def get_all_words(page: int = 0, size: int = 100, db: Session = Depends(get_connection)):
     return service.get_all_words(db = db, page = page, size=size)
 
-@routers.get('/words_count', tags=['word'])
+@routers.get('/words_count/', tags=['word'])
+async def all_words_count(db: Session = Depends(get_connection)):
+    return service.words_count(db)
+
+@routers.get('/words_count/{name}', tags=['word'])
 async def words_count_by_name(name: str, db: Session = Depends(get_connection)):
     return service.words_count_by_name(name, db)
+
+@routers.get('/get_words/{name}', tags=['word'])
+async def words(name: str, db: Session = Depends(get_connection), page: int = 0, size: int = 100):
+    return service.get_words(name, db, page, size)
 
 @routers.get('/{id}', tags=['word'])
 async def get_word_by_id(id: int = None, db: Session = Depends(get_connection)):
@@ -49,11 +55,19 @@ async def suggest_word(suggest: suggestDto.SuggestWord, db: Session = Depends(ge
 
 @routers.get('/suggests_count/', tags=['suggest'])
 async def suggest_count(name: str, db: Session = Depends(get_connection)):
-    return service.suggest_count(name, db)
+    return service.suggest_size(name, db)
 
 @routers.get('/suggests/', tags=['suggest'])
 async def suggests(name: str = '', page: int = 0, size: int = 15, db: Session = Depends(get_connection)):
-    return service.suggests(name, db, page, size)
+    return service.get_suggest_words(name, db, page, size)
+
+@routers.post('/reject_suggest/', tags=['suggest'])
+async def reject_suggest(id: int, db: Session = Depends(get_connection)):
+    return service.reject_suggest_word(id, db)
+
+@routers.post('/accept_suggest/', tags=['suggest'])
+async def accept_suggest(id: int, db: Session = Depends(get_connection)):
+    return service.accept_suggest_word(id, db)
 
 @routers.delete('/{id}', tags=['word'])
 async def delete_word(id: int = None, db: Session = Depends(get_connection)):

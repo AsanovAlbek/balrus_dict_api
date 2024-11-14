@@ -258,6 +258,7 @@ def update_user_password(email: str, password: str, db: Session):
 def add_suggets_word(data: suggest_word.SuggestWord, db: Session):
     try:
         suggest = SuggestWord(
+            id=0,
             word=data.word,
             meaning=data.meaning,
             user_id=data.user_id
