@@ -18,10 +18,10 @@ from dto import word, user
 from model.user import User
 
 stfp_hostname = "31.41.63.47"
-stfp_port = "7637"
+stfp_port = "4512" #7637
 stfp_username = "albek"
 stfp_password = "albek8888"
-audio_folder_url = "sftp://albek@31.41.63.47:7637/balrusapi/audio/"
+audio_folder_url = "sftp://albek@31.41.63.47:4512/balrusapi/audio/" #7637
 
 #Все слова
 def get_all_words(db: Session, page: int = 0, size: int = 100):
@@ -69,14 +69,16 @@ def add_word(data: word.Word, db: Session):
 def delete_word(id: int, db: Session):
     deleted_word = db.query(Word).filter(Word.id == id).first()
     try:
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect(hostname=stfp_hostname, port=stfp_port, username=stfp_username, password=stfp_password)
-        stfp_connection = ssh.open_sftp()
-        if deleted_word.audio_url.split('/')[-1] in stfp_connection.listdir('/balrusapi/audio/'):
-            stfp_connection.remove(deleted_word.audio_url)
-        stfp_connection.close()
-        ssh.close()
+        # Пока что файлов нет на новом сервере
+        # удаление слова будет работать, но аудио к нему не удалится
+        # ssh = paramiko.SSHClient()
+        # ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        # ssh.connect(hostname=stfp_hostname, port=stfp_port, username=stfp_username, password=stfp_password)
+        # stfp_connection = ssh.open_sftp()
+        # if deleted_word.audio_url.split('/')[-1] in stfp_connection.listdir('/balrusapi/audio/'):
+        #     stfp_connection.remove(deleted_word.audio_url)
+        # stfp_connection.close()
+        # ssh.close()
         db.query(Word).filter(Word.id == id).delete()
         db.commit()
     except Exception as e:
